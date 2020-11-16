@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Socket.IO chat</title>
+    <meta
+      name="description"
+      content="a basic Messenger Plattfrom (powered by Socket.io)"
+    />
+    <meta name="author" content="chibbi" />
+    <meta
+      name="viewport"
+      content="width=device-width, height=device-height, initial-scale=1"
+    />
+    <link rel="stylesheet" href="http://YOURWEBSITE.org/css/default.css" />
+  </head>
+
+  <body onload="">
+    <div id="navbar">
+        <button id="getUs">get Users</button><button id="setName">change Username</button>
+    </div>
+    <div id="divmess">
+      <ul id="messages"></ul>
+    </div>
+    <form action="">
+      <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="http://YOURWEBSITE.org/js/default.js"></script>
+  </body>
+</html>

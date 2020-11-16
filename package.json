@@ -1,0 +1,29 @@
+{
+  "name": "chatmessenger",
+  "version": "1.0.0",
+  "description": "a NodeJS based Messenger",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chibbi/ChatMessenger.git"
+  },
+  "keywords": [
+    "messenger",
+    "server"
+  ],
+  "author": "chibbi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chibbi/ChatMessenger/issues"
+  },
+  "homepage": "https://github.com/chibbi/ChatMessenger#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "prompt-sync": "^4.2.0",
+    "read-last-line": "^1.1.0",
+    "socket.io": "^3.0.1"
+  }
+}

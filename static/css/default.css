@@ -1,0 +1,102 @@
+/* MOBILE-specific */
+@media (max-device-width: 1000px) {
+  * {
+  }
+  div {
+    max-height: 78vh;
+  }
+
+  body {
+    background-color: lightblue;
+  }
+}
+
+/* DESKTOP-specific */
+@media (min-device-width: 1001px) {
+  * {
+  }
+  div {
+    max-height: 86vh;
+  }
+
+  body {
+    background-color: rgb(255, 255, 255);
+  }
+}
+
+/* COMMON */
+* {
+  margin: 0;
+  padding: 0;
+  font-size: 17px;
+}
+
+body {
+  font: 13px Helvetica, Arial;
+}
+
+div {
+  margin-left: 1%;
+  margin-right: 1%;
+  margin-top: 1vh;
+  margin-bottom: 1vh;
+  width: 97vw;
+  min-height: 0vh;
+  border: 3px solid #ffa4a4;
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+/* MESSAGE */
+form {
+  background: #000;
+  padding: 3px;
+  position: fixed;
+  bottom: 0;
+  margin-left: 1%;
+  margin-right: 1%;
+  margin-top: 1vh;
+  margin-bottom: 1vh;
+  width: 97vw;
+}
+
+form input {
+  border: 0;
+  padding: 8px;
+  width: 80%;
+  margin-right: 0.5%;
+}
+
+form button {
+  width: 15%;
+  background: rgb(130, 224, 255);
+  border: none;
+  padding: 5px;
+}
+
+/* CHAT */
+#messages {
+  list-style-type: circle;
+  margin: 0;
+  padding: 0;
+}
+
+#messages li {
+  padding: 5px 10px;
+}
+
+#messages li:nth-child(odd) {
+  background: rgb(187, 187, 187);
+}
+
+/* NAVBAR */
+#navbar button {
+  display: inline;
+  height: 4vh;
+  margin: 1px;
+}
+
+#navbar {
+  height: max-content;
+  overflow: hidden;
+}
