@@ -19,7 +19,7 @@ function getCookie(cname) {
 function getUsername() {
   var person = getCookie("username");
   if (person == null || person == "") {
-    setUsername
+    setUsername();
   }
   username = person;
 }
@@ -36,7 +36,7 @@ function setUsername() {
 
 $(function () {
   var socket = io();
-  socket.emit("changename", username);
+  socket.emit("clientconn");
   $("form").submit(function (e) {
     e.preventDefault();
     socket.emit("chat message", $("#m").val());
@@ -54,6 +54,9 @@ $(function () {
     $("#messages").append($("<li>").text(msg));
     var elem = document.getElementById("divmess");
     elem.scrollTop = elem.scrollHeight;
+  });
+  socket.on("restart", function () {
+    socket.emit("silchangename", username);
   });
 });
 
