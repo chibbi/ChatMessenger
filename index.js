@@ -5,8 +5,9 @@ var fs = require("fs");
 var readLastLine = require('read-last-line');
 
 var port = 3000;
-var dirname = "/Path/to/your/GithubRepos/ChatMessenger/";
-var filename = dirname + "/data/messages.log";
+var dirname = "/mnt/LinuxStorage/Syncthing/GithubRepos/ChatMessenger/";
+var logs = dirname + "/data/server.log";
+var messages = dirname + "/data/messages.log";
 var servername = "SERVER ::: ";
 var islogging = true;
 
@@ -26,13 +27,10 @@ app.get("/js/default.js", (req, res) => {
 });
 
 io.on("connection", (socket) => {
-    printlog("New user connected (" + socket.handshake.address + ")");
-
+    /* CONNECTION */
     addIp(socket.handshake.address);
     usernumber++;
     console.log(usernumber);
-
-    socket.broadcast.emit("chat message", servername + "Someone joined");
 
     readLastLine.read(dirname + "data/messages.log", 25).then(function (lines) {
         var lastM = lines.split("'");
@@ -45,12 +43,17 @@ io.on("connection", (socket) => {
         console.log(err.message);
     });;
 
+    socket.broadcast.emit("chat message", servername + "Someone joined");
+    printlog("New user connected (" + socket.handshake.address + ")",);
+
+    /* DISCONNECT */
     socket.on("disconnect", () => {
         console.log("user disconnected");
         io.emit("chat message", servername + "Someone disconnected");
         usernumber--;
         console.log(usernumber);
     });
+    /* MESSAGE */
     socket.on("chat message", (msg) => {
         var sendable = "yes";
         if (isBanned(socket.handshake.address)) { sendable = "banned" };
@@ -60,13 +63,14 @@ io.on("connection", (socket) => {
         sendable = temp[0];
         switch (sendable) {
             case "yes":
-                msg = usernamedb[socket.handshake.address] + " wrote: " + msg;
-                printlog(msg);
+                msg = usernamedb[socket.handshake.address] + ": " + msg;
+                console.log(addTimeStamp(msg));
+
                 io.emit("chat message", msg);
                 break;
             case "temp":
-                msg = usernamedb[socket.handshake.address] + " wrote: " + msg;
-                console.log(msg);
+                msg = usernamedb[socket.handshake.address] + ": " + msg;
+                console.log(addTimeStamp(msg));
                 io.emit("chat message", msg);
                 break;
             case "does":
@@ -76,17 +80,16 @@ io.on("connection", (socket) => {
                 break;
             case "command":
                 msg = usernamedb[socket.handshake.address] + " wrote: " + msg;
-                printlog(msg);
+                console.log(addTimeStamp(msg));
                 msg = usernamedb[socket.handshake.address] + " got: " + output;
                 io.emit("chat message", msg);
                 break;
             case "banned":
-                printlog(
-                    usernamedb[socket.handshake.address] +
+                msg = usernamedb[socket.handshake.address] +
                     " wrote: '" +
                     msg +
                     "' IP BANNED"
-                );
+                console.log(addTimeStamp(msg));
                 socket.emit(
                     "chat message",
                     servername + "you are BANNED"
@@ -101,6 +104,7 @@ io.on("connection", (socket) => {
                 break;
         }
     });
+    /* USERLIST */
     socket.on("callusernum", () => {
         console.log(socket.handshake.address + " pressed getUsers");
         var i = 1;
@@ -110,6 +114,7 @@ io.on("connection", (socket) => {
             i++;
         });
     });
+    /* NAMECHANGE */
     socket.on("changename", (msg) => {
         printlog(socket.handshake.address + " changes Names to: " + msg);
         usernamedb[socket.handshake.address] = msg;
@@ -186,12 +191,18 @@ function addTimeStamp(text) {
 }
 
 function printlog(text) {
-    var curdate = new Date();
     text = addTimeStamp(text);
     if (islogging) {
-        fs.appendFile(filename, "'" + text + "'\n", "utf8", (err) => {
+        fs.appendFile(logs, "'" + text + "'\n", "utf8", (err) => {
             if (err) throw err;
         });
     }
     console.log(text);
+}
+
+function printlog(text) {
+    text = addTimeStamp(text);
+        fs.appendFile(logs, "'" + text + "'\n", "utf8", (err) => {
+            if (err) throw err;
+        });
 }
