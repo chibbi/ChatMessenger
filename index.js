@@ -2,7 +2,8 @@ var app = require("express")();
 var http = require("http").createServer(app);
 var io = require("socket.io")(http);
 var fs = require("fs");
-var readLastLine = require('read-last-line');
+var readline = require("readline");
+var readLastLine = require("read-last-line");
 
 var port = 3000;
 var dirname = "/mnt/LinuxStorage/Syncthing/GithubRepos/ChatMessenger/";
@@ -12,9 +13,13 @@ var servername = "SERVER ::: ";
 var islogging = true;
 
 var usernumber = 0;
-var usernamedb = [];
+var usernamedb = {};
+var usernamedbfile = dirname + "/data/username.json";;
 var useripdb = [];
+var useripdbfile = dirname + "/data/userip.json";;
 var bannedipdb = [];
+var bannedipdbfile = dirname + "/data/bannedip.json";;
+var activeipdb = [];
 
 app.get("/", (req, res) => {
     res.sendFile(dirname + "static/index.html");
@@ -32,40 +37,45 @@ io.on("connection", (socket) => {
     usernumber++;
     console.log(usernumber);
 
-    readLastLine.read(dirname + "data/messages.log", 25).then(function (lines) {
-        var lastM = lines.split("'");
-        for (var i = 0; i <= lastM.length; i++) {
-            if (i % 2) {
-                socket.emit("chat message", lastM[i]);
-            }
-        }
-    }).catch(function (err) {
-        console.log(err.message);
-    });;
-
-    socket.broadcast.emit("chat message", servername + "Someone joined");
+    socket.emit("restart");
     printlog("New user connected (" + socket.handshake.address + ")",);
 
+    /* CONNECT */
+    socket.on("clientconn", () => {
+        socket.broadcast.emit("chat message", servername + "Someone joined");
+        readLastLine.read(messages, 25).then(function (lines) {
+            var lastM = lines.split("'");
+            for (var i = 0; i <= lastM.length; i++) {
+                if (i % 2 && lastM[i] != undefined) {
+                    socket.emit("chat message", lastM[i]);
+                }
+            }
+        }).catch(function (err) {
+            console.log(err.message);
+        });;
+    });
     /* DISCONNECT */
     socket.on("disconnect", () => {
-        console.log("user disconnected");
+        console.log(addTimeStamp("user disconnected"));
         io.emit("chat message", servername + "Someone disconnected");
         usernumber--;
         console.log(usernumber);
     });
     /* MESSAGE */
     socket.on("chat message", (msg) => {
-        var sendable = "yes";
+        var sendable = "message";
         if (isBanned(socket.handshake.address)) { sendable = "banned" };
         if (hasBadLetters(msg)) { sendable = "bad msg" };
         var temp = isCommand(msg, socket.handshake.address, sendable);
         var output = temp[1];
         sendable = temp[0];
         switch (sendable) {
-            case "yes":
-                msg = usernamedb[socket.handshake.address] + ": " + msg;
-                console.log(addTimeStamp(msg));
-
+            case "message":
+                msg = addTimeStamp(usernamedb[socket.handshake.address] + ": " + msg);
+                console.log(msg);
+                fs.appendFile(messages, "'" + msg + "'\n", "binary", (err) => {
+                    if (err) throw err;
+                });
                 io.emit("chat message", msg);
                 break;
             case "temp":
@@ -108,7 +118,7 @@ io.on("connection", (socket) => {
     socket.on("callusernum", () => {
         console.log(socket.handshake.address + " pressed getUsers");
         var i = 1;
-        useripdb.forEach((ip) => {
+        activeipdb.forEach((ip) => {
             var name = usernamedb[ip];
             io.emit("chat message", servername + "user [" + i + "]: " + name);
             i++;
@@ -120,6 +130,11 @@ io.on("connection", (socket) => {
         usernamedb[socket.handshake.address] = msg;
         socket.emit("chat message", "changed username to: " + msg);
     });
+    /* SILENT NAMECHANGE */
+    socket.on("silchangename", (msg) => {
+        printlog(socket.handshake.address + " changes Names to: " + msg);
+        usernamedb[socket.handshake.address] = msg;
+    });
 });
 
 http.listen(port, () => {
@@ -128,13 +143,25 @@ http.listen(port, () => {
 
 function addIp(addr) {
     var exists = false;
-    useripdb.forEach((ip) => {
-        if (ip == addr) {
+    for (var i = 0; i <= useripdb.length; i++) {
+        if (useripdb[i] == addr) {
             exists = true;
         }
-    });
+    }
     if (!exists) {
         useripdb.push(addr);
+        fs.writeFile(useripdbfile, JSON.stringify(useripdb), (err) => {
+            if (err) throw err;
+        });
+    }
+    var exists = false;
+    for (var i = 0; i <= activeipdb.length; i++) {
+        if (activeipdb[i] == addr) {
+            exists = true;
+        }
+    }
+    if (!exists) {
+        activeipdb.push(addr);
     }
 }
 
@@ -180,11 +207,11 @@ function addTimeStamp(text) {
         "-" +
         curdate.getFullYear() +
         "_" +
-        curdate.getHours() +
+        ("0" + curdate.getHours()).slice(-2) +
         ":" +
-        curdate.getMinutes() +
+        ("0" + curdate.getMinutes()).slice(-2) +
         ":" +
-        curdate.getSeconds() +
+        ("0" + curdate.getSeconds()).slice(-2) +
         " :: " +
         text;
     return text;
@@ -200,9 +227,49 @@ function printlog(text) {
     console.log(text);
 }
 
-function printlog(text) {
-    text = addTimeStamp(text);
-        fs.appendFile(logs, "'" + text + "'\n", "utf8", (err) => {
-            if (err) throw err;
-        });
+function saveDB() {
+    fs.writeFile(bannedipdbfile, JSON.stringify(bannedipdb), (err) => {
+        if (err) throw err;
+    });
+    fs.writeFile(useripdbfile, JSON.stringify(useripdb), (err) => {
+        if (err) throw err;
+    });
+    fs.writeFile(usernamedbfile, JSON.stringify(usernamedb), (err) => {
+        if (err) throw err;
+    });
+    printlog("saved Databases");
+}
+
+function loadDB() {
+    fs.readFile(bannedipdbfile, (err, data) => {
+        if (err) throw err;
+        console.log("data:" + data);
+        bannedipdb = data;
+    });
+    fs.readFile(useripdbfile, (err, data) => {
+        if (err) throw err;
+        console.log("data:" + data);
+        for(var ip in data) {
+            if(ip.hasOwnProperty(String)) {
+                useripdb = ip;
+                console.log("IP:" + ip);
+            }
+        }
+    });
+    fs.readFile(usernamedbfile, (err, data) => {
+        if (err) throw err;
+        console.log("data:" + data);
+        usernamedb = JSON.parse(data);
+    });
+    printlog("reloaded Databases");
+    setTimeout(show, 100);
+    setInterval(saveDB, 60000);
+}
+
+loadDB();
+
+function show() {
+    console.log("names:" + usernamedb);
+    console.log("ip:" + useripdb);
+    console.log("banned:" + bannedipdb);
 }
